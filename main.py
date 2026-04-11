@@ -1,5 +1,6 @@
 import streamlit as st
 import math
+from plot_presjek import nacrtaj_presjek
 
 st.title("Proračun uzgona - okno")
 
@@ -33,7 +34,8 @@ if abs(teren - niveleta) > 10:
 H_ukupno = teren - niveleta
 H_voda = teren - nivo_vode
 
-H_uronjeno = H_ukupno - H_voda
+H_uronjeno = max(0,H_ukupno - H_voda)
+#H_uronjeno = max(0, min(nivo_vode - niveleta, H_ukupno))
 H_suho = H_ukupno - H_uronjeno
 
 # ------------------------
@@ -53,7 +55,9 @@ A_prosirenje = A_temelj - math.pi * R**2
 # ------------------------
 # UZGON
 # ------------------------
-U = gamma_vode * A_temelj * H_uronjeno
+#U = gamma_vode * A_temelj * (H_uronjeno + t)
+H_uzgon = max(0, nivo_vode - (niveleta - t))
+U = gamma_vode * A_temelj * H_uzgon
 
 # ------------------------
 # FAKTOR SIGURNOSTI
@@ -71,7 +75,7 @@ max_h = H_ukupno  # ne može biti viši od okna
 
 FS = 0
 
-while h_prsten <= max_h:
+while FS <= FS_min:
 
     # TEŽINE
 
@@ -84,33 +88,38 @@ while h_prsten <= max_h:
     # VISINE ZA TLO
     H_iznad_prstena = H_ukupno - h_prsten
 
-    H_uronjeno_iznad = H_ukupno-h_prsten-H_suho
-    H_suho_iznad = H_iznad_prstena - H_uronjeno_iznad
+    #H_uronjeno_iznad = max(0, min(H_iznad_prstena, H_uronjeno))
+    H_uronjeno_iznad = max(0,H_ukupno-h_prsten-H_suho)
+    H_suho_iznad = max (0, H_iznad_prstena - H_uronjeno_iznad)
 
     # G3 – uronjeno tlo iznad prstena
     G3 = A_prsten * H_uronjeno_iznad * gamma_tla
 
     # G3A – proširenje (uronjeno)
-    G3A = A_prosirenje * H_voda * gamma_tla
+    G3A = A_prosirenje * H_uronjeno * gamma_tla
 
     # G4 – suho tlo iznad prstena
     G4 = A_prsten * H_suho_iznad * gamma_tla
 
     # G4A – proširenje (suho)
-    G4A = A_prosirenje * H_suho_iznad * gamma_tla
+    G4A = A_prosirenje * H_suho * gamma_tla
 
     # UKUPNO
     G_total = G1 + G2 + G3 + G3A + G4 + G4A
 
     # UZGON
-    U = gamma_vode * A_temelj * H_uronjeno
+    #U = gamma_vode * A_temelj * H_uronjeno
 
     FS = G_total / U if U > 0 else 0
 
-    if FS >= FS_min:
+    if h_prsten >= H_ukupno - 0.05:
         break
 
     h_prsten += korak
+
+# KOREKCIJS MINIMSLNOG PRSTENA NAKON +korak
+if h_prsten == 0.05:
+    h_prsten = 0
 
 # ------------------------
 # SUMA
@@ -128,12 +137,19 @@ st.write(f"Visina podzemne vode = {H_uronjeno:.2f} m")
 st.write(f"Uzgon U = {U:.2f} kN")
 st.write(f"Ukupna težina ΣG = {G_total:.2f} kN")
 
-FS = G_total / U if U > 0 else 0
-st.write(f"Sigurnost protiv uzgona = {FS:.2f}")
+if U <= 0:
+    FS = float("inf")
+    h_prsten = 0
+
+    st.write("Sigurnost protiv uzgona = ∞")
+    st.success("Nema uzgona – prsten nije potreban")
+else:
+    FS = G_total / U
+    st.write(f"Sigurnost protiv uzgona = {FS:.2f}")
 
 st.write(f"Potrebna visina prstena = {h_prsten:.2f} m")
 
-if FS >= 1.10:
+if FS >= FS_min:
     st.success("OK – zadovoljava")
 else:
     st.error("NE zadovoljava")
@@ -161,3 +177,24 @@ st.write(f"A_okna = {A_okno:.3f} m2")
 st.write(f"A_prosirenje = {A_prosirenje:.3f} m2")
 st.write(f"H_uronjeno = {H_uronjeno:.3f} m")
 st.write(f"H_suho = {H_suho:.3f} m")
+st.write(f"H_ukupno = {H_ukupno:.3f} m")
+st.write(f"H_uronjeno iznad = {H_uronjeno_iznad:.3f} m")
+st.write(f"H_prstena = {h_prsten:.3f} m")
+
+st.subheader("Grafički prikaz")
+
+fig = nacrtaj_presjek(
+    teren,
+    niveleta,
+    nivo_vode,
+    D,
+    a,
+    t,
+    b,
+    h_prsten,
+    H_uzgon,
+    H_uronjeno,
+    H_suho
+)
+
+st.pyplot(fig)
