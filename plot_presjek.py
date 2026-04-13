@@ -12,9 +12,10 @@ def nacrtaj_presjek(
     t,
     b,
     h_prsten,
-    H_uzgon,
-    H_uronjeno,
-    H_suho
+    #H_uzgon,
+    #H_uronjeno,
+    #H_suho,
+    ax=None
 ):
     y0 = niveleta  # referenca
 
@@ -23,7 +24,12 @@ def nacrtaj_presjek(
     y_dno = -t
     y_voda = nivo_vode - y0
 
-    fig, ax = plt.subplots(figsize=(6, 6))
+    #fig, ax = plt.subplots(figsize=(6, 6))
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(6, 6))  # koristi veći prikaz za app
+    else:
+        fig = None  # koristi postojeći ax (export)
+
 
     # KOTE
     y_teren = teren
@@ -149,6 +155,6 @@ def nacrtaj_presjek(
     ax.set_aspect('auto')
     ax.axis('off')
     #ax.set_title("Presjek okna")
-    fig.tight_layout()
+    #fig.tight_layout()
     ax.set_ylim(y_dno - 0.2, y_teren + 0.1)
-    return fig
+    return fig if fig is not None else ax.figure

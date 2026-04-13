@@ -153,6 +153,27 @@ G_total = G_ok
 # ------------------------
 G_total = G1 + G2 + G3 + G3A + G4 + G4A
 
+# -------------------------
+# EKSPORT SLIKE
+# -------------------------
+from Export_slika import export_slika
+
+#if st.sidebar.button("Generiraj sliku"):
+st.sidebar.divider()
+img_buffer = export_slika(
+    teren, niveleta, nivo_vode,
+    D, a, t, b,
+    FS, h_prsten,
+    U, G_total
+)
+
+st.sidebar.download_button(
+    label="Preuzmi sliku",
+    data=img_buffer,
+    file_name="proracun_okno.png",
+    mime="image/png"
+)
+
 with col1:
     # ------------------------
     # REZULTATI
@@ -223,8 +244,8 @@ with col2:
         t,
         b,
         h_prsten,
-        H_uzgon,
-        H_uronjeno,
-        H_suho
+        #H_uzgon,
+        #H_uronjeno,
+        #H_suho
     )
     st.pyplot(fig, use_container_width=True)
